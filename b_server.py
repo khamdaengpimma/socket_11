@@ -50,20 +50,23 @@ class Ball:
         self.canvas.coords(self.label, label_x, label_y)
 
 def key(event):
-    move_speed = 20
-    if event == 'Up':
-        ball1.move(0, -move_speed)
-    elif event == 'Down':
-        ball1.move(0, move_speed)
-    elif event == 'Left':
-        ball1.move(-move_speed, 0)
-    elif event == 'Right':
-        ball1.move(move_speed, 0)
-    else:
-        pass
+    x,y =event.split()
+    x = int(x)
+    y= int(y)
+    ball1.move(x,y)
+    # move_speed = 20
+    # if event == 'Up':
+    #     ball1.move(0, -move_speed)
+    # elif event == 'Down':
+    #     ball1.move(0, move_speed)
+    # elif event == 'Left':
+    #     ball1.move(-move_speed, 0)
+    # elif event == 'Right':
+    #     ball1.move(move_speed, 0)
+    # else:
+    #     pass
 
 def client_handler(client_socket):
-    # global name
     while True:
         data = client_socket.recv(1024).decode('utf-8')
         if not data:

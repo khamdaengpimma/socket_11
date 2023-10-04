@@ -47,59 +47,60 @@ class Ball:
         self.canvas.coords(self.ball, coords[0], coords[1], coords[2], coords[3])
         label_x = (coords[0] + coords[2]) / 2
         label_y = (coords[1] + coords[3]) / 2
-        self.canvas.coords(self.label, label_x, label_y)
-
-def key(event):
+def key(event, ball):
     move_speed = 20
     if event == 'Up':
-        ball1.move(0, -move_speed)
+        ball.move(0, -move_speed)
     elif event == 'Down':
-        ball1.move(0, move_speed)
+        ball.move(0, move_speed)
     elif event == 'Left':
-        ball1.move(-move_speed, 0)
+        ball.move(-move_speed, 0)
     elif event == 'Right':
-        ball1.move(move_speed, 0)
+        ball.move(move_speed, 0)
     else:
         pass
 
 def client_handler(client_socket):
-    # global name
     while True:
         data = client_socket.recv(1024).decode('utf-8')
         if not data:
-            break 
-        # Handle client data here (e.g., move the ball)
-        # name = data
+            break
         print(f"Received data from client: {data}")
-        key(data)
-        # You can add logic here to move the ball based on the data received from the client
+        key(data, ball1)  # Call the key function for the ball1
+
+# Create a list to hold all the client threads
+client_threads = []
 
 # Start the server
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = '127.0.0.1'
 port = 12345
 server_socket.bind((host, port))
-server_socket.listen(1)
+server_socket.listen(5)  # Allow multiple clients to queue up
 
 print(f"Server is listening on {host}:{port}...")
 
-# Accept client connections
-client_socket, client_addr = server_socket.accept()
-print(f"Accepted connection from {client_addr}")
-name = client_socket.recv(1024).decode('utf-8')
-
+# Create the Tkinter window and canvas
 root = Tk()
 root.title('Ball_server')
 mainCanvas = Canvas(root, width=500, height=500)
-
 mainCanvas.grid()
-client_thread = threading.Thread(target=client_handler, args=(client_socket,))
-client_thread.start()
-ball1 = Ball(mainCanvas, name, 'green', pos_x=225, pos_y=100)
 
-# Start a thread to handle client communication
+while True:
+    # Accept client connections
+    client_socket, client_addr = server_socket.accept()
+    print(f"Accepted connection from {client_addr}")
+    name = client_socket.recv(1024).decode('utf-8')
 
+    # Create a ball for each client and start a thread for the client handler
+    ball1 = Ball(mainCanvas, name, 'green', pos_x=225, pos_y=100)
+    client_thread = threading.Thread(target=client_handler, args=(client_socket,))
+    client_threads.append(client_thread)
+    client_thread.start()
+
+# Start the Tkinter main loop
 root.mainloop()
 
-# Close the client socket when the application exits
-client_socket.close()
+# Close the client sockets and wait for client threads to finish
+for thread in client_threads:
+    thread.join()

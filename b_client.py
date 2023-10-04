@@ -1,6 +1,8 @@
-from tkinter import *
 import socket
-import threading
+from tkinter import *
+
+
+
 
 class Ball:
     def __init__(self, canvas, name, color, **kw):
@@ -26,8 +28,7 @@ class Ball:
 
         label_x = (coords[0] + coords[2]) / 2
         label_y = (coords[1] + coords[3]) / 2
-        self.label = self.canvas.create_text(label_x, label_y, text=self.name)
-    
+        self.label = self.canvas.create_text(label_x, label_y,text=self.name)
 
     def move(self, x=0, y=0):
         self.pos_x += x
@@ -49,52 +50,59 @@ class Ball:
         label_y = (coords[1] + coords[3]) / 2
         self.canvas.coords(self.label, label_x, label_y)
 
+def send_key(x,y):
+    client_socket.send(f"{x} {y}".encode('utf-8'))
+    # print(client_socket.send(f"{x} {y}".encode('utf-8')))
+
 def key(event):
+    # print(event)
     move_speed = 20
-    if event == 'Up':
+    
+    if event.keysym == 'Up':
         ball1.move(0, -move_speed)
-    elif event == 'Down':
+        send_key(0,-move_speed)
+    elif event.keysym == 'Down':
         ball1.move(0, move_speed)
-    elif event == 'Left':
+        send_key(0,move_speed)
+    elif event.keysym == 'Left':
         ball1.move(-move_speed, 0)
-    elif event == 'Right':
+        send_key(-move_speed,0)
+    elif event.keysym == 'Right':
         ball1.move(move_speed, 0)
+        send_key(move_speed,0)
     else:
         pass
 
 def client_handler(client_socket):
-    # global name
     while True:
         data = client_socket.recv(1024).decode('utf-8')
         if not data:
-            break 
+            break
         # Handle client data here (e.g., move the ball)
-        # name = data
         print(f"Received data from client: {data}")
         key(data)
         # You can add logic here to move the ball based on the data received from the client
+name = str(input("CREATE Nane: "))
 
-# Start the server
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Start 
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = '127.0.0.1'
 port = 12345
-server_socket.bind((host, port))
-server_socket.listen(1)
+client_socket.connect((host, port))
+client_socket.send(name.encode())
+# client_socket.send("Connected".encode('utf-8'))
 
-print(f"Server is listening on {host}:{port}...")
 
-# Accept client connections
-client_socket, client_addr = server_socket.accept()
-print(f"Accepted connection from {client_addr}")
-name = client_socket.recv(1024).decode('utf-8')
 
 root = Tk()
-root.title('Ball_server')
+root.title('Ball_client')
 mainCanvas = Canvas(root, width=500, height=500)
 
+root.bind('<Up>', key)
+root.bind('<Down>', key)
+root.bind('<Left>', key)
+root.bind('<Right>', key)
 mainCanvas.grid()
-client_thread = threading.Thread(target=client_handler, args=(client_socket,))
-client_thread.start()
 ball1 = Ball(mainCanvas, name, 'green', pos_x=225, pos_y=100)
 
 # Start a thread to handle client communication
@@ -102,4 +110,4 @@ ball1 = Ball(mainCanvas, name, 'green', pos_x=225, pos_y=100)
 root.mainloop()
 
 # Close the client socket when the application exits
-client_socket.close()
+# client_socket.close()
