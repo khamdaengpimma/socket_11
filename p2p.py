@@ -2,7 +2,6 @@ import socket
 import tkinter as tk
 import threading
 import random
-import time
 
 HOST = "127.0.0.1"
 PORT = 2050
@@ -14,9 +13,9 @@ class Circle:
         self.color = color
         self.radius = radius
         self.create_circle()
-        self.dx = 0  # Initialize speed to 0
+        self.dx = 0
         self.dy = 0
-        self.move_interval = 100  # Time interval for moving the circle
+        self.move_interval = 100
 
     def create_circle(self):
         x = random.randint(self.radius, self.canvas.winfo_width() - self.radius)
@@ -32,37 +31,46 @@ class Circle:
         self.canvas.move(self.circle, self.dx, self.dy)
         self.canvas.move(self.label, self.dx, self.dy)
         self.check_boundary()
-        self.canvas.after(self.move_interval, self.move)  # Schedule the next move
+        self.canvas.after(self.move_interval, self.move)
 
     def check_boundary(self):
-        # Check if the circle hits the canvas boundary
         x1, y1, x2, y2 = self.canvas.coords(self.circle)
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
 
         if x1 < 0 or x2 > canvas_width:
-            self.dx = 0  # Stop horizontal movement
+            self.dx = 0
         if y1 < 0 or y2 > canvas_height:
-            self.dy = 0  # Stop vertical movement
+            self.dy = 0
+
+class Client:
+    def __init__(self, name):
+        self.name = name
+        self.circle = None
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, PORT))
-    server_socket.listen(1)
+    server_socket.listen(2)  # Listen for up to 2 clients
 
-    print("Server is waiting for a client...")
-    client, addr = server_socket.accept()
-    print("Client connected from", addr)
+    print("Server is waiting for clients...")
 
-    circle = None
+    clients = []  # List to store client objects
+
+    while len(clients) < 2:
+        client, addr = server_socket.accept()
+        print(f"Client {len(clients) + 1} connected from {addr}")
+        client_name = f"Client {len(clients) + 1}"
+        client.send(f"Welcome, {client_name}!".encode())
+        clients.append(Client(client_name))
 
     while True:
         try:
-            data = client.recv(1024).decode()
-            if not data:
-                break
-            circle = handle_command(data, circle)
-            print(data)
+            for client in clients:
+                data = client
+                if not data:
+                    break
+                print(data)
         except Exception as e:
             print(e)
             break
@@ -70,24 +78,22 @@ def start_server():
     server_socket.close()
     root.quit()
 
-def handle_command(command, circle):
+def handle_command(command, client):
     if command.startswith("CREATE"):
-        _, name = command.split()#, color, radius_str
+        _, name = command.split()
         radius = 30
-        circle = Circle(canvas, name, "gold", radius)
-        circle.move()
-    elif circle is not None and command.startswith("MOVE"):
+        client.circle = Circle(canvas, name, "gold", radius)
+        client.circle.move()
+    elif client.circle is not None and command.startswith("MOVE"):
         _, x_str, y_str = command.split()
         x = int(x_str)
         y = int(y_str)
-        move_circle(circle, x, y)
-    
-    return circle  # Return the updated circle
+        move_circle(client.circle, x, y)
 
 def move_circle(circle, x, y):
     if circle is not None:
-        circle.dx = x  # Update the x-speed
-        circle.dy = y  # Update the y-speed
+        circle.dx = x
+        circle.dy = y
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -96,7 +102,6 @@ if __name__ == "__main__":
     canvas = tk.Canvas(root, width=500, height=500)
     canvas.pack()
 
-    # Create a border around the canvas
     border_width = 1
     canvas.create_rectangle(
         border_width, border_width,
